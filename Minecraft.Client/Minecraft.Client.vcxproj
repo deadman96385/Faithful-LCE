@@ -1301,6 +1301,11 @@ if not exist "$(TargetDir)\savedata" mkdir "$(TargetDir)\savedata"</Command>
       <SuppressStartupBanner>false</SuppressStartupBanner>
       <ForceFileOutput>MultiplyDefinedSymbolOnly</ForceFileOutput>
     </Link>
+    <PostBuildEvent>
+      <Message>Copying sound assets to output directory</Message>
+      <Command>xcopy /q /y /i /s /e "$(ProjectDir)Durango\Sound" "$(OutDir)Durango\Sound"
+xcopy /q /y /i /s /e "$(ProjectDir)music" "$(OutDir)music"</Command>
+    </PostBuildEvent>
     <ImageXex>
       <ConfigurationFile>$(ProjectDir)xbox\xex-dev.xml</ConfigurationFile>
     </ImageXex>
@@ -1429,6 +1434,11 @@ xcopy /q /y /i /s /e $(ProjectDir)Durango\CU  $(LayoutDir)Image\Loose\CU</Comman
       <ShowProgress>NotSet</ShowProgress>
       <SuppressStartupBanner>false</SuppressStartupBanner>
     </Link>
+    <PostBuildEvent>
+      <Message>Copying sound assets to output directory</Message>
+      <Command>xcopy /q /y /i /s /e "$(ProjectDir)Durango\Sound" "$(OutDir)Durango\Sound"
+xcopy /q /y /i /s /e "$(ProjectDir)music" "$(OutDir)music"</Command>
+    </PostBuildEvent>
     <ImageXex>
       <ConfigurationFile>$(ProjectDir)xbox\xex-dev.xml</ConfigurationFile>
     </ImageXex>
