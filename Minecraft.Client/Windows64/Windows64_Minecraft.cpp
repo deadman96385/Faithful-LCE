@@ -339,6 +339,75 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+
+	// Keyboard/Mouse input handling
+	case WM_KEYDOWN:
+		if (!(lParam & 0x40000000)) // ignore auto-repeat
+			KMInput.OnKeyDown(wParam);
+		break;
+	case WM_KEYUP:
+		KMInput.OnKeyUp(wParam);
+		break;
+	case WM_SYSKEYDOWN:
+		if (wParam == VK_MENU) // Alt key
+		{
+			if (!(lParam & 0x40000000))
+				KMInput.OnKeyDown(wParam);
+			return 0; // prevent default Alt behavior
+		}
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	case WM_SYSKEYUP:
+		if (wParam == VK_MENU)
+		{
+			KMInput.OnKeyUp(wParam);
+			return 0;
+		}
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	case WM_INPUT:
+		KMInput.OnRawMouseInput(lParam);
+		break;
+	case WM_LBUTTONDOWN:
+		KMInput.OnMouseButton(0, true);
+		break;
+	case WM_LBUTTONUP:
+		KMInput.OnMouseButton(0, false);
+		break;
+	case WM_RBUTTONDOWN:
+		KMInput.OnMouseButton(1, true);
+		break;
+	case WM_RBUTTONUP:
+		KMInput.OnMouseButton(1, false);
+		break;
+	case WM_MBUTTONDOWN:
+		KMInput.OnMouseButton(2, true);
+		break;
+	case WM_MBUTTONUP:
+		KMInput.OnMouseButton(2, false);
+		break;
+	case WM_MOUSEWHEEL:
+		KMInput.OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
+		break;
+	case WM_MOUSEMOVE:
+		KMInput.OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		break;
+	case WM_ACTIVATE:
+		if (LOWORD(wParam) == WA_INACTIVE)
+			KMInput.SetCapture(false);
+		break;
+	case WM_KILLFOCUS:
+		KMInput.SetCapture(false);
+		KMInput.ClearAllState();
+		break;
+
+	case WM_SETCURSOR:
+		// Hide the OS cursor when an Iggy/Flash menu is displayed (it has its own Flash cursor)
+		if (LOWORD(lParam) == HTCLIENT && !KMInput.IsCaptured() && ui.GetMenuDisplayed(0))
+		{
+			SetCursor(NULL);
+			return TRUE;
+		}
+		return DefWindowProc(hWnd, message, wParam, lParam);
+
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -715,6 +784,9 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	// Set the number of possible joypad layouts that the user can switch between, and the number of actions
 	InputManager.Initialise(1,3,MINECRAFT_ACTION_MAX, ACTION_MAX_MENU);
 
+	// Initialize keyboard/mouse input
+	KMInput.Init(g_hWnd);
+
 	// Set the default joypad action mappings for Minecraft
 	DefineActions();
 	InputManager.SetJoypadMapVal(0,0);
@@ -940,6 +1012,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		app.UpdateTime();
 		PIXBeginNamedEvent(0,"Input manager tick");
 		InputManager.Tick();
+		KMInput.Tick();
 		PIXEndNamedEvent();
 		PIXBeginNamedEvent(0,"Profile manager tick");
 		//		ProfileManager.Tick();
@@ -971,6 +1044,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		// Render game graphics.
 		if(app.GetGameStarted())
 		{
+			pMinecraft->applyFrameMouseLook();  // Per-frame mouse look (before ticks + render)
 			pMinecraft->run_middle();
 			app.SetAppPaused( g_NetworkManager.IsLocalGame() && g_NetworkManager.GetPlayerCount() == 1 && ui.IsPauseMenuDisplayed(ProfileManager.GetPrimaryPad()) );
 		}
@@ -1067,6 +1141,27 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		RenderManager.Present();
 
 		ui.CheckMenuDisplayed();
+
+		// Update mouse capture: capture when in-game and no menu is open
+		{
+			static bool altToggleSuppressCapture = false;
+			bool shouldCapture = app.GetGameStarted() && !ui.GetMenuDisplayed(0) && pMinecraft->screen == NULL;
+			// Left Alt key toggles capture on/off for debugging
+			if (KMInput.IsKeyPressed(VK_MENU))
+			{
+				if (KMInput.IsCaptured()) { KMInput.SetCapture(false); altToggleSuppressCapture = true; }
+				else if (shouldCapture)   { KMInput.SetCapture(true);  altToggleSuppressCapture = false; }
+			}
+			else if (!shouldCapture)
+			{
+				if (KMInput.IsCaptured()) KMInput.SetCapture(false);
+				altToggleSuppressCapture = false;
+			}
+			else if (shouldCapture && !KMInput.IsCaptured() && GetFocus() == g_hWnd && !altToggleSuppressCapture)
+			{
+				KMInput.SetCapture(true);
+			}
+		}
 #if 0
 		PIXBeginNamedEvent(0,"Profile load check");
 		// has the game defined profile data been changed (by a profile load)
@@ -1158,6 +1253,8 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		// Fix for #7318 - Title crashes after short soak in the leaderboards menu
 		// A memory leak was caused because the icon renderer kept creating new Vec3's because the pool wasn't reset
 		Vec3::resetPool();
+
+		KMInput.EndFrame();
 	}
 
 	// Free resources, unregister custom classes, and exit.
