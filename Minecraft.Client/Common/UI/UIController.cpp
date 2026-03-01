@@ -176,7 +176,7 @@ UIController::UIController()
 #if defined _WINDOWS64 || defined _DURANGO || defined __ORBIS__
 	m_fScreenWidth = 1920.0f;
 	m_fScreenHeight = 1080.0f;
-	m_bScreenWidthSetup = true;
+	m_bScreenWidthSetup = false;
 #else
 	m_fScreenWidth = 1280.0f;
 	m_fScreenHeight = 720.0f;
@@ -426,36 +426,36 @@ void UIController::loadSkins()
 #elif defined __PSVITA__
 	platformSkinPath = L"skinVita.swf";
 #elif defined _WINDOWS64
-	if(m_fScreenHeight==1080.0f)
+	if(m_fScreenHeight>=1080.0f)
 	{
 		platformSkinPath = L"skinHDWin.swf";
 	}
 	else
 	{
-		platformSkinPath = L"skinWin.swf";	
+		platformSkinPath = L"skinWin.swf";
 	}
 #elif defined _DURANGO
-	if(m_fScreenHeight==1080.0f)
+	if(m_fScreenHeight>=1080.0f)
 	{
-		platformSkinPath = L"skinHDDurango.swf";	
+		platformSkinPath = L"skinHDDurango.swf";
 	}
 	else
 	{
-		platformSkinPath = L"skinDurango.swf";	
+		platformSkinPath = L"skinDurango.swf";
 	}
 #elif defined __ORBIS__
-	if(m_fScreenHeight==1080.0f)
+	if(m_fScreenHeight>=1080.0f)
 	{
-		platformSkinPath = L"skinHDOrbis.swf";	
+		platformSkinPath = L"skinHDOrbis.swf";
 	}
 	else
 	{
-		platformSkinPath = L"skinOrbis.swf";	
+		platformSkinPath = L"skinOrbis.swf";
 	}
 
 #endif
 	// Every platform has one of these, so nothing shared
-	if(m_fScreenHeight==1080.0f)
+	if(m_fScreenHeight>=1080.0f)
 	{
 		m_iggyLibraries[eLibrary_Platform] = loadSkin(platformSkinPath, L"platformskinHD.swf");
 	}

@@ -79,6 +79,10 @@ BOOL g_bWidescreen = TRUE;
 int g_iScreenWidth = 1920;
 int g_iScreenHeight = 1080;
 
+// Fullscreen toggle state
+static bool g_isFullscreen = false;
+static WINDOWPLACEMENT g_wpPrev = { sizeof(g_wpPrev) };
+
 void DefineActions(void)
 {
 	// The app needs to define the actions required, and the possible mappings for these
@@ -257,7 +261,7 @@ HRESULT InitD3D( IDirect3DDevice9 **ppDevice,
 	pd3dPP->EnableAutoDepthStencil = TRUE;
 	pd3dPP->AutoDepthStencilFormat = D3DFMT_D24S8;
 	pd3dPP->SwapEffect             = D3DSWAPEFFECT_DISCARD;
-	pd3dPP->PresentationInterval   = D3DPRESENT_INTERVAL_ONE;
+	pd3dPP->PresentationInterval   = D3DPRESENT_INTERVAL_IMMEDIATE;
 	//pd3dPP->Flags				   = D3DPRESENTFLAG_NO_LETTERBOX;
 	//ERR[D3D]: Can't set D3DPRESENTFLAG_NO_LETTERBOX when wide-screen is enabled
 	//	in the launcher/dashboard.
@@ -654,6 +658,36 @@ void Render()
 }
 
 //--------------------------------------------------------------------------------------
+// Toggle borderless fullscreen
+//--------------------------------------------------------------------------------------
+void ToggleFullscreen()
+{
+	DWORD dwStyle = GetWindowLong(g_hWnd, GWL_STYLE);
+	if (!g_isFullscreen)
+	{
+		MONITORINFO mi = { sizeof(mi) };
+		if (GetWindowPlacement(g_hWnd, &g_wpPrev) &&
+			GetMonitorInfo(MonitorFromWindow(g_hWnd, MONITOR_DEFAULTTOPRIMARY), &mi))
+		{
+			SetWindowLong(g_hWnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
+			SetWindowPos(g_hWnd, HWND_TOP,
+				mi.rcMonitor.left, mi.rcMonitor.top,
+				mi.rcMonitor.right - mi.rcMonitor.left,
+				mi.rcMonitor.bottom - mi.rcMonitor.top,
+				SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		}
+	}
+	else
+	{
+		SetWindowLong(g_hWnd, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
+		SetWindowPlacement(g_hWnd, &g_wpPrev);
+		SetWindowPos(g_hWnd, NULL, 0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+	}
+	g_isFullscreen = !g_isFullscreen;
+}
+
+//--------------------------------------------------------------------------------------
 // Clean up the objects we've created
 //--------------------------------------------------------------------------------------
 void CleanupDevice()
@@ -675,6 +709,17 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
+
+	// Declare DPI awareness so GetSystemMetrics returns physical pixels
+	SetProcessDPIAware();
+	g_iScreenWidth = GetSystemMetrics(SM_CXSCREEN);
+	g_iScreenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+	{
+		char buf[128];
+		sprintf(buf, "Screen resolution: %dx%d\n", g_iScreenWidth, g_iScreenHeight);
+		OutputDebugStringA(buf);
+	}
 
 	if(lpCmdLine)
 	{
@@ -1162,8 +1207,14 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 				KMInput.SetCapture(true);
 			}
 		}
+
+		// F11 toggles fullscreen
+		if (KMInput.IsKeyPressed(VK_F11))
+		{
+			ToggleFullscreen();
+		}
+
 #if 0
-		PIXBeginNamedEvent(0,"Profile load check");
 		// has the game defined profile data been changed (by a profile load)
 		if(app.uiGameDefinedDataChangedBitmask!=0)
 		{

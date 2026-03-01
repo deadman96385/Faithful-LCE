@@ -6234,7 +6234,7 @@ wstring CMinecraftApp::GetActionReplacement(int iPad, unsigned char ucAction)
 	int size = 30;
 #elif defined _WIN64
 	int size = 45;
-	if(ui.getScreenWidth() < 1920) size = 30;
+	if(ui.getScreenHeight() < 1080) size = 30;
 #else
 	int size = 45;
 #endif
@@ -6363,7 +6363,7 @@ wstring CMinecraftApp::GetVKReplacement(unsigned int uiVKey)
 	int size = 30;
 #elif defined _WIN64
 	int size = 45;
-	if(ui.getScreenWidth() < 1920) size = 30;
+	if(ui.getScreenHeight() < 1080) size = 30;
 #else
 	int size = 45;
 #endif
@@ -6394,7 +6394,7 @@ wstring CMinecraftApp::GetIconReplacement(unsigned int uiIcon)
 	int size = 22;
 #elif defined _WIN64
 	int size = 33;
-	if(ui.getScreenWidth() < 1920) size = 22;
+	if(ui.getScreenHeight() < 1080) size = 22;
 #else
 	int size = 33;
 #endif
