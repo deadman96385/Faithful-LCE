@@ -22,8 +22,9 @@ void Timer::advanceTime()
 {
     __int64 nowMs = System::currentTimeMillis();
     __int64 passedMs = nowMs - lastMs;
-    __int64 msSysTime = System::nanoTime() / 1000000;
-    double now = msSysTime / 1000.0;
+    
+    // 4J - Use high-resolution timer for 'now' in seconds
+    double now = System::nanoTime() / 1000000000.0;
 
 
     if (passedMs > 1000)
@@ -39,6 +40,7 @@ void Timer::advanceTime()
         accumMs += passedMs;
         if (accumMs > 1000)
 		{
+            __int64 msSysTime = (__int64)(now * 1000.0);
             __int64 passedMsSysTime = msSysTime - lastMsSysTime;
 
             double adjustTimeT = accumMs / (double) passedMsSysTime;
@@ -49,7 +51,7 @@ void Timer::advanceTime()
         }
         if (accumMs < 0)
 		{
-            lastMsSysTime = msSysTime;
+            lastMsSysTime = (__int64)(now * 1000.0);
         }
     }
     lastMs = nowMs;
@@ -68,7 +70,6 @@ void Timer::advanceTime()
     if (ticks > MAX_TICKS_PER_UPDATE) ticks = MAX_TICKS_PER_UPDATE;
 
     a = passedTime;
-
 }
 
 void Timer::advanceTimeQuickly()
