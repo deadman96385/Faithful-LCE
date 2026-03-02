@@ -5634,6 +5634,9 @@
     <ClCompile Include="Common\UI\UIScene_Keyboard.cpp">
       <Filter>Common\Source Files\UI\Scenes</Filter>
     </ClCompile>
+    <ClCompile Include="crt_compat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Library Include="Xbox\4JLibs\libs\4J_Render_d.lib">
