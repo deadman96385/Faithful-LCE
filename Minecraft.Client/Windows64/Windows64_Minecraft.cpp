@@ -1239,6 +1239,33 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 			}
 		}
 
+#ifdef _DEBUG_MENUS_ENABLED
+		// F3 toggles onscreen debug info
+		if (KMInput.IsKeyPressed(VK_F3))
+		{
+			if (Minecraft* pMinecraft = Minecraft::GetInstance())
+			{
+				if (pMinecraft->options && app.DebugSettingsOn())
+				{
+					pMinecraft->options->renderDebug = !pMinecraft->options->renderDebug;
+				}
+			}
+		}
+
+		// F4 opens debug overlay
+		if (KMInput.IsKeyPressed(VK_F4))
+		{
+			if (Minecraft* pMinecraft = Minecraft::GetInstance())
+			{
+				if (pMinecraft->options && app.DebugSettingsOn() && 
+					app.GetGameStarted() && !ui.GetMenuDisplayed(0) && pMinecraft->screen == NULL)
+				{
+					ui.NavigateToScene(0, eUIScene_DebugOverlay, NULL, eUILayer_Debug);
+				}
+			}
+		}
+#endif
+
 #if 0
 		// has the game defined profile data been changed (by a profile load)
 		if(app.uiGameDefinedDataChangedBitmask!=0)
