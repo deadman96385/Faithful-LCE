@@ -29,6 +29,7 @@
 #include "TitleScreen.h"
 #include "InventoryScreen.h"
 #include "InBedChatScreen.h"
+#include "ChatScreen.h"
 #include "AchievementPopup.h"
 #include "Input.h"
 #include "FrustumCuller.h"
@@ -1243,6 +1244,18 @@ void Minecraft::applyFrameMouseLook()
 
 		float rawDx, rawDy;
 		KMInput.ConsumeMouseDelta(rawDx, rawDy);
+
+		// DEADMAU5: when fixedCamera is off, IJKL keys override the player look direction
+		if (ClientConstants::DEADMAU5_CAMERA_CHEATS && !options->fixedCamera && screen == NULL)
+		{
+			float kbDx = 0.0f, kbDy = 0.0f;
+			if      (KMInput.IsKeyDown('J')) kbDx = -12.0f * options->cameraSpeed;
+			else if (KMInput.IsKeyDown('L')) kbDx =  12.0f * options->cameraSpeed;
+			if      (KMInput.IsKeyDown('I')) kbDy =  12.0f * options->cameraSpeed;
+			else if (KMInput.IsKeyDown('K')) kbDy = -12.0f * options->cameraSpeed;
+			if (kbDx != 0.0f || kbDy != 0.0f) { rawDx = kbDx; rawDy = kbDy; }
+		}
+
 		if (rawDx == 0.0f && rawDy == 0.0f) continue;
 
 		float mouseSensitivity = 0.5f;
@@ -1518,6 +1531,25 @@ void Minecraft::run_middle()
 						// In flying mode, Shift held = sneak/descend
 						if (localplayers[i]->abilities.flying && KMInput.IsKeyDown(VK_SHIFT))
 							localplayers[i]->ullButtonsPressed |= 1LL<<MINECRAFT_ACTION_SNEAK_TOGGLE;
+
+						// Toggle keys and chat - only when no screen is open
+						if (screen == NULL)
+						{
+							if (KMInput.ConsumeKeyPress(VK_F1))  options->hideGui      = !options->hideGui;
+							if (KMInput.ConsumeKeyPress(VK_F3))  options->renderDebug  = !options->renderDebug;
+							if (KMInput.ConsumeKeyPress(VK_F8))  options->smoothCamera = !options->smoothCamera;
+
+							if (isClientSide() && KMInput.ConsumeKeyPress('T'))
+								setScreen(new ChatScreen());
+
+							if (ClientConstants::DEADMAU5_CAMERA_CHEATS)
+							{
+								if (KMInput.ConsumeKeyPress(VK_F6))       options->isFlying    = !options->isFlying;
+								if (KMInput.ConsumeKeyPress(VK_F9))       options->fixedCamera = !options->fixedCamera;
+								if (KMInput.ConsumeKeyPress(VK_ADD))      options->cameraSpeed += 0.1f;
+								if (KMInput.ConsumeKeyPress(VK_SUBTRACT)) { options->cameraSpeed -= 0.1f; if (options->cameraSpeed < 0.0f) options->cameraSpeed = 0.0f; }
+							}
+						}
 					}
 #endif
 
@@ -4604,43 +4636,58 @@ bool Minecraft::renderDebug()
 
 bool Minecraft::handleClientSideCommand(const wstring& chatMessage)
 {
-	/* 4J - TODO
-	if (chatMessage.startsWith("/")) {
-	if (DEADMAU5_CAMERA_CHEATS) {
-	if (chatMessage.startsWith("/follow")) {
-	String[] tokens = chatMessage.split(" ");
-	if (tokens.length >= 2) {
-	String playerName = tokens[1];
+	if (!chatMessage.empty() && chatMessage[0] == L'/')
+	{
+		if (ClientConstants::DEADMAU5_CAMERA_CHEATS)
+		{
+			if (chatMessage.substr(0, 7) == L"/follow")
+			{
+				// Split into tokens on whitespace
+				wstringstream ss(chatMessage);
+				vector<wstring> tokens;
+				wstring token;
+				while (ss >> token) tokens.push_back(token);
 
-	boolean found = false;
-	for (Player player : level.players) {
-	if (playerName.equalsIgnoreCase(player.name)) {
-	cameraTargetPlayer = player;
-	found = true;
-	break;
-	}
-	}
+				if (tokens.size() >= 2 && level != NULL)
+				{
+					wstring playerName = tokens[1];
+					bool found = false;
 
-	if (!found) {
-	try {
-	int entityId = Integer.parseInt(playerName);
-	for (Entity e : level.entities) {
-	if (e.entityId == entityId && e instanceof Mob) {
-	cameraTargetPlayer = (Mob) e;
-	found = true;
-	break;
-	}
-	}
-	} catch (NumberFormatException e) {
-	}
-	}
-	}
+					// Search players by name
+					for (auto& p : level->players)
+					{
+						if (equalsIgnoreCase(playerName, p->name))
+						{
+							cameraTargetPlayer = dynamic_pointer_cast<Mob>(p);
+							found = true;
+							break;
+						}
+					}
 
-	return true;
+					// Search entities by numeric ID
+					if (!found)
+					{
+						wchar_t* endptr = nullptr;
+						long entityId = wcstol(playerName.c_str(), &endptr, 10);
+						if (endptr != playerName.c_str())
+						{
+							for (auto& e : level->entities)
+							{
+								shared_ptr<Mob> mob = dynamic_pointer_cast<Mob>(e);
+								if (mob != nullptr && e->entityId == (int)entityId)
+								{
+									cameraTargetPlayer = mob;
+									found = true;
+									break;
+								}
+							}
+						}
+					}
+				}
+				return true;
+			}
+		}
 	}
-	}
-	}
-	*/
 	return false;
 }
 
