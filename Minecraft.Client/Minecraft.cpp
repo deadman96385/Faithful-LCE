@@ -1238,6 +1238,7 @@ void Minecraft::applyFrameMouseLook()
 		if (iPad != 0) continue;  // Mouse only applies to pad 0
 
 		if (!KMInput.IsCaptured()) continue;
+		if (ui.GetMenuDisplayed(iPad)) continue;
 		if (localgameModes[iPad] == NULL) continue;
 
 		float rawDx, rawDy;
@@ -1249,6 +1250,12 @@ void Minecraft::applyFrameMouseLook()
 		float mdy = -rawDy * mouseSensitivity;
 		if (app.GetGameSettings(iPad, eGameSetting_ControlInvertLook))
 			mdy = -mdy;
+
+		bool canLookYaw = localgameModes[iPad]->isInputAllowed(MINECRAFT_ACTION_LOOK_LEFT) || localgameModes[iPad]->isInputAllowed(MINECRAFT_ACTION_LOOK_RIGHT);
+		bool canLookPitch = localgameModes[iPad]->isInputAllowed(MINECRAFT_ACTION_LOOK_UP) || localgameModes[iPad]->isInputAllowed(MINECRAFT_ACTION_LOOK_DOWN);
+		if (!canLookYaw) mdx = 0.0f;
+		if (!canLookPitch) mdy = 0.0f;
+		if (mdx == 0.0f && mdy == 0.0f) continue;
 
 		// Apply 0.15f scaling (same as Entity::interpolateTurn / Entity::turn)
 		float dyaw = mdx * 0.15f;
@@ -3274,22 +3281,32 @@ void Minecraft::tick(bool bFirst, bool bUpdateTextures)
 		// Mouse scroll wheel for hotbar
 		if (iPad == 0)
 		{
-			int kbWheel = KMInput.ConsumeScrollDelta();
+			int kbWheel = 0;
+			if (KMInput.IsCaptured() && !ui.IsContainerMenuDisplayed(0))
+			{
+				kbWheel = KMInput.ConsumeScrollDelta();
+			}
+			else if (!ui.GetMenuDisplayed(0))
+			{
+				KMInput.ConsumeScrollDelta();
+			}
 			if (kbWheel > 0 && gameMode->isInputAllowed(MINECRAFT_ACTION_LEFT_SCROLL)) wheel += 1;
 			else if (kbWheel < 0 && gameMode->isInputAllowed(MINECRAFT_ACTION_RIGHT_SCROLL)) wheel -= 1;
 
 			// 1-9 keys for direct hotbar selection
-			if (gameMode->isInputAllowed(MINECRAFT_ACTION_LEFT_SCROLL))
+			for (int k = '1'; k <= '9'; k++)
 			{
-				for (int k = '1'; k <= '9'; k++)
+				if (!KMInput.ConsumeKeyPress(k))
 				{
-					if (KMInput.ConsumeKeyPress(k))
-					{
-						player->inventory->selected = k - '1';
-						app.SetOpacityTimer(iPad);
-						break;
-					}
+					continue;
 				}
+
+				if (KMInput.IsCaptured() && gameMode->isInputAllowed(MINECRAFT_ACTION_LEFT_SCROLL))
+				{
+					player->inventory->selected = k - '1';
+					app.SetOpacityTimer(iPad);
+				}
+				break;
 			}
 		}
 #endif
@@ -3325,7 +3342,7 @@ void Minecraft::tick(bool bFirst, bool bUpdateTextures)
 				player->lastClickTick[0] = ticks;
 			}
 #ifdef _WINDOWS64
-			else if (iPad == 0 && KMInput.IsCaptured() && KMInput.ConsumeMousePress(0))
+			else if (iPad == 0 && KMInput.IsCaptured() && !ui.IsContainerMenuDisplayed(0) && KMInput.ConsumeMousePress(0))
 			{
 				player->handleMouseClick(0);
 				player->lastClickTick[0] = ticks;
@@ -3339,7 +3356,7 @@ void Minecraft::tick(bool bFirst, bool bUpdateTextures)
 				player->lastClickTick[0] = ticks;
 			}
 #ifdef _WINDOWS64
-			else if (iPad == 0 && KMInput.IsCaptured() && KMInput.IsMouseDown(0) && ticks - player->lastClickTick[0] >= timer->ticksPerSecond / 4)
+			else if (iPad == 0 && KMInput.IsCaptured() && !ui.IsContainerMenuDisplayed(0) && KMInput.IsMouseDown(0) && ticks - player->lastClickTick[0] >= timer->ticksPerSecond / 4)
 			{
 				player->handleMouseClick(0);
 				player->lastClickTick[0] = ticks;
@@ -3348,7 +3365,7 @@ void Minecraft::tick(bool bFirst, bool bUpdateTextures)
 
 			if(InputManager.ButtonDown(iPad, MINECRAFT_ACTION_ACTION)
 #ifdef _WINDOWS64
-				|| (iPad == 0 && KMInput.IsCaptured() && KMInput.IsMouseDown(0))
+				|| (iPad == 0 && KMInput.IsCaptured() && !ui.IsContainerMenuDisplayed(0) && KMInput.IsMouseDown(0))
 #endif
 			)
 			{
@@ -3373,14 +3390,14 @@ void Minecraft::tick(bool bFirst, bool bUpdateTextures)
 		{
 			if(!InputManager.ButtonDown(iPad, MINECRAFT_ACTION_USE)
 #ifdef _WINDOWS64
-				&& !(iPad == 0 && KMInput.IsCaptured() && KMInput.IsMouseDown(1))
+				&& !(iPad == 0 && KMInput.IsCaptured() && !ui.IsContainerMenuDisplayed(0) && KMInput.IsMouseDown(1))
 #endif
 			) gameMode->releaseUsingItem(player);
 		}
 		else if( gameMode->isInputAllowed(MINECRAFT_ACTION_USE) )
 		{
 #ifdef _WINDOWS64
-			bool useButtonDown = InputManager.ButtonDown(iPad, MINECRAFT_ACTION_USE) || (iPad == 0 && KMInput.IsCaptured() && KMInput.IsMouseDown(1));
+			bool useButtonDown = InputManager.ButtonDown(iPad, MINECRAFT_ACTION_USE) || (iPad == 0 && KMInput.IsCaptured() && !ui.IsContainerMenuDisplayed(0) && KMInput.IsMouseDown(1));
 #else
 			bool useButtonDown = InputManager.ButtonDown(iPad, MINECRAFT_ACTION_USE);
 #endif

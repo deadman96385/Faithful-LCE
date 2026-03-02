@@ -606,7 +606,6 @@ app.DebugPrintf("width: %d, height: %d\n", width, height);
 
 	// Create a depth stencil buffer
 	D3D11_TEXTURE2D_DESC descDepth;
-	ZeroMemory(&descDepth, sizeof(descDepth));
 
 	descDepth.Width = width;
 	descDepth.Height = height;
@@ -1196,7 +1195,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		// Update mouse capture: capture when in-game and no menu is open
 		{
 			static bool altToggleSuppressCapture = false;
-			bool shouldCapture = app.GetGameStarted() && !ui.GetMenuDisplayed(0) && pMinecraft->screen == NULL;
+			bool shouldCapture = app.GetGameStarted() && (!ui.GetMenuDisplayed(0) || ui.IsContainerMenuDisplayed(0));
 			// Left Alt key toggles capture on/off for debugging
 			if (KMInput.IsKeyPressed(VK_MENU))
 			{

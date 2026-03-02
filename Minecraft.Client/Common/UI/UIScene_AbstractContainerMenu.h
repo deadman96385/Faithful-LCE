@@ -12,6 +12,10 @@ private:
 	bool m_bIgnoreInput;
 #ifdef _WINDOWS64
 	bool m_bMouseDragSlider;
+	bool m_bMouseLeftDragActive;
+	ESceneSection m_eMouseDragLastSection;
+	int m_iMouseDragLastSlotX;
+	int m_iMouseDragLastSlotY;
 #endif
 
 protected:
