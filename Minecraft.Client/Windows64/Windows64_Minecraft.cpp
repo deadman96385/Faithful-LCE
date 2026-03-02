@@ -1034,7 +1034,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	}
 #endif
 	MSG msg = {0};
-	while( WM_QUIT != msg.message )
+	while( WM_QUIT != msg.message && !app.m_bShutdown)
 	{
 		if( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) )
 		{

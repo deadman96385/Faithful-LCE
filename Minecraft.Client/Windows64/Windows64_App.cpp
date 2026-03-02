@@ -14,6 +14,7 @@ CConsoleMinecraftApp app;
 
 CConsoleMinecraftApp::CConsoleMinecraftApp() : CMinecraftApp()
 {
+	m_bShutdown = false;
 }
 
 void CConsoleMinecraftApp::SetRichPresenceContext(int iPad, int contextId)
@@ -26,6 +27,7 @@ void CConsoleMinecraftApp::StoreLaunchData()
 }
 void CConsoleMinecraftApp::ExitGame()
 {
+	m_bShutdown = true;
 }
 void CConsoleMinecraftApp::FatalLoadError()
 {
