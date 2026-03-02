@@ -7,6 +7,7 @@
 #include "TutorialConstraints.h"
 #include "InfoTask.h"
 #include "..\..\..\Minecraft.World\Material.h"
+#include "..\..\KeyboardMouseInput.h"
 
 InfoTask::InfoTask(Tutorial *tutorial, int descriptionId, int promptId /*= -1*/, bool requiresUserInput /*= false*/,
 	int iMapping /*= 0*/, ETelemetryChallenges telemetryEvent /*= eTelemetryTutorial_NoEvent*/)
@@ -65,7 +66,11 @@ bool InfoTask::isCompleted()
 			bool current = (*it).second;
 			if(!current)
 			{
-				if( InputManager.GetValue(pMinecraft->player->GetXboxPad(), (*it).first) > 0 )
+#ifdef _WINDOWS64
+				if (InputManager.GetValue(pMinecraft->player->GetXboxPad(), (*it).first) > 0 || KMInput.IsKeyDown(VK_SPACE))
+#else
+				if( InputManager.GetValue(pMinecraft->player->GetXboxPad(), (*it).first) > 0)
+#endif
 				{
 					(*it).second = true;
 					bAllComplete=true;
